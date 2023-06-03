@@ -1,11 +1,12 @@
 package dto
 
 import (
-	log "github.com/sirupsen/logrus"
 	"time"
 	"todo_pikpo/database"
 	model "todo_pikpo/database/models"
 	_interface "todo_pikpo/interface"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type TodoDTO struct {
@@ -24,7 +25,7 @@ func (td *TodoDTO) GetMany(filter map[string]interface{}, page uint, pageSize ui
 	if len(filter) >= 1 {
 		err = td.db.Postgres.Limit(int(pageSize)).Offset(int(page*pageSize)).Find(&data, filter).Error
 	} else {
-		err = td.db.Postgres.Find(&data).Error
+		err = td.db.Postgres.Limit(int(pageSize)).Offset(int(page * pageSize)).Find(&data).Error
 	}
 
 	if err != nil {

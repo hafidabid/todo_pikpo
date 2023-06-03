@@ -2,10 +2,11 @@ package database
 
 import (
 	"fmt"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"todo_pikpo/config"
 	model "todo_pikpo/database/models"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type Database struct {
@@ -18,7 +19,7 @@ func (db *Database) Migrate() error {
 }
 
 func (db *Database) Flush() error {
-	err := db.Postgres.Delete(&model.TodoModel{}).Error
+	err := db.Postgres.Where("id is not null").Delete(&model.TodoModel{}).Error
 	return err
 }
 
