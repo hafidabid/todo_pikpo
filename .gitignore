@@ -2,3 +2,4 @@
 .idea
 .env.test
 *.zip
+*.pb.go

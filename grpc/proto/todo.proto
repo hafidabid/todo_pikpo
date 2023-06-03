@@ -1,21 +1,65 @@
 syntax = "proto3";
 
-package todo.proto;
+package todoproto;
+option go_package="proto/";
+
+import "google/protobuf/struct.proto";
+
+service TodoService {
+  rpc GetTodo(FilterRequest) returns (ArrResponse){};
+  rpc GetOneTodo(IdQuery) returns (Response){};
+  rpc AddTodo(AddRequest) returns (Response){};
+  rpc EditTodo(EditRequest) returns (Response){};
+  rpc DeleteTodo(IdQuery) returns (Response){};
+}
+
+service StreamService{
+  rpc GetStreamingTodo(FilterRequest) returns (stream Response){};
+}
 
 message AddRequest {
+  string author=1;
+  string title=2;
+  string description=3;
+  bool isDone=4;
+  uint64 startDate=5; //timestamp in unix format time
+  uint64 endDate=6; //timestamp in unix format time
+}
 
+message DataResponse{
+  string author=1;
+  string title=2;
+  string description=3;
+  bool isDone=4;
+  uint64 startDate=5; //timestamp in unix format time
+  uint64 endDate=6; //timestamp in unix format time
+  uint64 createdAt=7;
+  uint64 updatedAt=8;
+  string id=9;
+}
+
+message ErrorResponse{
+  uint32 code=1;
+  string message=2;
+  google.protobuf.Struct details=3;
 }
 
 message Response {
-
+  bool isOk=1;
+  DataResponse value=2;
+  ErrorResponse error=3;
 }
 
 message FilterRequest{
-
+  string author=1;
+  string title=2;
+  bool isDone=3;
+  uint32 page=4;
+  uint32 limit=5;
 }
 
 message IdQuery {
-
+  string id=1;
 }
 
 message ArrResponse{
@@ -27,12 +71,3 @@ message EditRequest {
   AddRequest data = 2;
 }
 
-service TodoService {
-  rpc Get(FilterRequest) returns (ArrResponse);
-  rpc GetOne(IdQuery) returns (Response);
-  rpc GetStreaming(FilterRequest) returns (stream Response);
-  rpc Add(AddRequest) returns (Response);
-  rpc AddBulk(stream AddRequest) returns (ArrResponse);
-  rpc Edit(EditRequest) returns (Response);
-  rpc Delete(IdQuery) returns (Response);
-}
