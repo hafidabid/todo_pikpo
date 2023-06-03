@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"todo_pikpo/config"
@@ -23,7 +24,6 @@ func (db *Database) Flush() error {
 
 func NewDatabase(connURI string) (db Database, err error) {
 	var newDatabase Database
-
 	conn, err := gorm.Open(postgres.Open(connURI), &gorm.Config{})
 	if err != nil {
 		return newDatabase, err
@@ -34,6 +34,11 @@ func NewDatabase(connURI string) (db Database, err error) {
 	return newDatabase, nil
 }
 
-func CreateURI(config config.ConfigApp) string {
-	return ""
+func CreateURI(conf config.ConfigApp) string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
+		conf.DbUsername,
+		conf.DbPassword,
+		conf.DbHost,
+		conf.DbPort,
+		conf.DbName)
 }

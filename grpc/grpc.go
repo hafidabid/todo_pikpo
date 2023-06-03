@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	"time"
 	"todo_pikpo/controllers"
 	model "todo_pikpo/database/models"
@@ -19,13 +20,13 @@ func (gs *GrpcServer) todoGetter(filter *pb.FilterRequest) ([]*pb.DataResponse, 
 	pg := 0
 	limit := 10
 	if len(filter.GetAuthor()) > 0 {
-		query["Author"] = filter.GetAuthor()
+		query["author"] = filter.GetAuthor()
 	}
 	if len(filter.GetTitle()) > 0 {
-		query["Title"] = filter.GetTitle()
+		query["title"] = filter.GetTitle()
 	}
 	if filter.GetIsDone() == true && filter.GetIsDone() == false {
-		query["IsDone"] = filter.GetIsDone()
+		query["is_done"] = filter.GetIsDone()
 	}
 	if filter.GetPage() > 0 {
 		pg = int(filter.GetPage())
@@ -37,9 +38,10 @@ func (gs *GrpcServer) todoGetter(filter *pb.FilterRequest) ([]*pb.DataResponse, 
 	var listOfData []*pb.DataResponse
 
 	res, _, err := gs.controller.GetTodos(query, uint(pg), uint(limit))
-	if res != nil {
+	if err != nil {
 		return nil, err
 	}
+
 	for _, d := range res {
 		listOfData = append(listOfData, &pb.DataResponse{
 			Author:      d.Author,
@@ -53,27 +55,46 @@ func (gs *GrpcServer) todoGetter(filter *pb.FilterRequest) ([]*pb.DataResponse, 
 			Id:          d.Id,
 		})
 	}
+
 	return listOfData, nil
 }
 
 func (gs *GrpcServer) GetTodo(ctx context.Context, filter *pb.FilterRequest) (*pb.ArrResponse, error) {
+	log.Info(time.Now(), " grpc - GetTodo ", filter)
+
 	lData, err := gs.todoGetter(filter)
+	var eResp = pb.ErrorResponse{}
+	if err != nil {
+		eResp = pb.ErrorResponse{
+			Code:    500,
+			Message: err.Error(),
+			Details: nil,
+		}
+	}
+
 	return &pb.ArrResponse{
 		IsOk:  err == nil,
 		Value: lData,
-		Error: &pb.ErrorResponse{
-			Code:    uint32(500),
-			Message: err.Error(),
-			Details: nil,
-		},
+		Error: &eResp,
 	}, nil
 }
 
 func (gs *GrpcServer) GetOneTodo(ctx context.Context, id *pb.IdQuery) (*pb.Response, error) {
-	resp, status, e := gs.controller.GetTodo(id.GetId())
+	log.Info(time.Now(), " grpc - GetOneTodo ", id)
+
+	resp, status, err := gs.controller.GetTodo(id.GetId())
+
+	var eResp = pb.ErrorResponse{}
+	if err != nil {
+		eResp = pb.ErrorResponse{
+			Code:    uint32(status),
+			Message: err.Error(),
+			Details: nil,
+		}
+	}
 
 	return &pb.Response{
-		IsOk: e == nil,
+		IsOk: err == nil,
 		Value: &pb.DataResponse{
 			Author:      resp.Author,
 			Title:       resp.Title,
@@ -85,11 +106,7 @@ func (gs *GrpcServer) GetOneTodo(ctx context.Context, id *pb.IdQuery) (*pb.Respo
 			UpdatedAt:   uint64(resp.UpdatedAt.Unix()),
 			Id:          resp.Id,
 		},
-		Error: &pb.ErrorResponse{
-			Code:    uint32(status),
-			Message: e.Error(),
-			Details: nil,
-		},
+		Error: &eResp,
 	}, nil
 }
 
@@ -97,8 +114,13 @@ func (gs *GrpcServer) GetStreamingTodo(
 	filter *pb.FilterRequest,
 	stream pb.StreamService_GetStreamingTodoServer,
 ) error {
+	log.Info(time.Now(), " grpc - GetStreamingTodo ", filter)
 	lData, err := gs.todoGetter(filter)
 	if err != nil {
+		stream.Send(&pb.DataResponse{
+			Title: err.Error(),
+			Id:    "Error",
+		})
 		return err
 	}
 
@@ -112,6 +134,8 @@ func (gs *GrpcServer) GetStreamingTodo(
 }
 
 func (gs *GrpcServer) AddTodo(ctx context.Context, data *pb.AddRequest) (*pb.Response, error) {
+	log.Info(time.Now(), " grpc - AddTodo ", data)
+
 	res, code, err := gs.controller.AddTodo(model.TodoModel{
 		Author:      data.GetAuthor(),
 		Title:       data.GetTitle(),
@@ -119,6 +143,16 @@ func (gs *GrpcServer) AddTodo(ctx context.Context, data *pb.AddRequest) (*pb.Res
 		StartDate:   time.Unix(int64(data.GetStartDate()), 0),
 		EndDate:     time.Unix(int64(data.GetEndDate()), 0),
 	})
+
+	var eResp = pb.ErrorResponse{}
+	if err != nil {
+		eResp = pb.ErrorResponse{
+			Code:    uint32(code),
+			Message: err.Error(),
+			Details: nil,
+		}
+	}
+
 	return &pb.Response{
 		IsOk: err == nil,
 		Value: &pb.DataResponse{
@@ -132,14 +166,13 @@ func (gs *GrpcServer) AddTodo(ctx context.Context, data *pb.AddRequest) (*pb.Res
 			UpdatedAt:   uint64(res.UpdatedAt.Unix()),
 			Id:          res.Id,
 		},
-		Error: &pb.ErrorResponse{
-			Code:    uint32(code),
-			Message: err.Error(),
-		},
+		Error: &eResp,
 	}, nil
 }
 
 func (gs *GrpcServer) EditTodo(ctx context.Context, data *pb.EditRequest) (*pb.Response, error) {
+	log.Info(time.Now(), " grpc - EditTodo ", data)
+
 	res, code, err := gs.controller.EditTodo(data.GetId().GetId(), model.TodoModel{
 		Author:      data.GetData().GetAuthor(),
 		Title:       data.GetData().GetTitle(),
@@ -148,6 +181,16 @@ func (gs *GrpcServer) EditTodo(ctx context.Context, data *pb.EditRequest) (*pb.R
 		StartDate:   time.Unix(int64(data.GetData().GetStartDate()), 0),
 		EndDate:     time.Unix(int64(data.GetData().GetEndDate()), 0),
 	})
+
+	var eResp = pb.ErrorResponse{}
+	if err != nil {
+		eResp = pb.ErrorResponse{
+			Code:    uint32(code),
+			Message: err.Error(),
+			Details: nil,
+		}
+	}
+
 	return &pb.Response{
 		IsOk: err == nil,
 		Value: &pb.DataResponse{
@@ -161,15 +204,24 @@ func (gs *GrpcServer) EditTodo(ctx context.Context, data *pb.EditRequest) (*pb.R
 			UpdatedAt:   uint64(res.UpdatedAt.Unix()),
 			Id:          res.Id,
 		},
-		Error: &pb.ErrorResponse{
-			Code:    uint32(code),
-			Message: err.Error(),
-		},
+		Error: &eResp,
 	}, nil
 }
 
 func (gs *GrpcServer) DeleteTodo(ctx context.Context, id *pb.IdQuery) (*pb.Response, error) {
+	log.Info(time.Now(), " grpc - DeleteTodo ", id.GetId())
+
 	res, code, err := gs.controller.DeleteTodo(id.GetId())
+
+	var eResp = pb.ErrorResponse{}
+	if err != nil {
+		eResp = pb.ErrorResponse{
+			Code:    uint32(code),
+			Message: err.Error(),
+			Details: nil,
+		}
+	}
+
 	return &pb.Response{
 		IsOk: err == nil,
 		Value: &pb.DataResponse{
@@ -183,14 +235,13 @@ func (gs *GrpcServer) DeleteTodo(ctx context.Context, id *pb.IdQuery) (*pb.Respo
 			UpdatedAt:   uint64(res.UpdatedAt.Unix()),
 			Id:          res.Id,
 		},
-		Error: &pb.ErrorResponse{
-			Code:    uint32(code),
-			Message: err.Error(),
-		},
+		Error: &eResp,
 	}, nil
 }
 
 func StartGrpc(controller *controllers.TodoController) GrpcServer {
 	g := GrpcServer{controller: controller}
+
+	log.Info(time.Now(), " Initialize new GRPC Instance ", g)
 	return g
 }

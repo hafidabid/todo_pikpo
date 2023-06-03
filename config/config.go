@@ -25,5 +25,6 @@ func NewAppConfig(filePath string) (c ConfigApp, e error) {
 	if e := viper.ReadInConfig(); e != nil {
 		log.Errorf("error in creating NewAppConfig with error ", e)
 	}
+	e = viper.Unmarshal(&confResult)
 	return confResult, e
 }
