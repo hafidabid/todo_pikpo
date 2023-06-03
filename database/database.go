@@ -4,7 +4,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"todo_pikpo/config"
-	"todo_pikpo/database/models"
+	model "todo_pikpo/database/models"
 )
 
 type Database struct {
@@ -12,12 +12,12 @@ type Database struct {
 }
 
 func (db *Database) Migrate() error {
-	err := db.Postgres.AutoMigrate(&models.TodoModel{})
+	err := db.Postgres.AutoMigrate(&model.TodoModel{})
 	return err
 }
 
 func (db *Database) Flush() error {
-	err := db.Postgres.Delete(&models.TodoModel{}).Error
+	err := db.Postgres.Delete(&model.TodoModel{}).Error
 	return err
 }
 

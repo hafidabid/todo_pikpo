@@ -1,3 +1,38 @@
 syntax = "proto3";
 
-package v1.todo.api;
+package todo.proto;
+
+message AddRequest {
+
+}
+
+message Response {
+
+}
+
+message FilterRequest{
+
+}
+
+message IdQuery {
+
+}
+
+message ArrResponse{
+  repeated Response result = 1;
+}
+
+message EditRequest {
+  IdQuery id = 1;
+  AddRequest data = 2;
+}
+
+service TodoService {
+  rpc Get(FilterRequest) returns (ArrResponse);
+  rpc GetOne(IdQuery) returns (Response);
+  rpc GetStreaming(FilterRequest) returns (stream Response);
+  rpc Add(AddRequest) returns (Response);
+  rpc AddBulk(stream AddRequest) returns (ArrResponse);
+  rpc Edit(EditRequest) returns (Response);
+  rpc Delete(IdQuery) returns (Response);
+}

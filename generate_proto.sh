@@ -1,0 +1,1 @@
+protoc --go_out=grpc --go_opt=Mgrpc/proto/todo.proto=proto/ ./grpc/proto/todo.proto
