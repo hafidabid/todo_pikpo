@@ -95,6 +95,7 @@ func (tc TodoController) DeleteTodo(id string) (model.TodoModel, int, error) {
 
 func CreateTodoController(db *database.Database) (TodoController, error) {
 	var res TodoController
-
+	res.dto = model.TodoDTO{}
+	res.dto.SetDb(db)
 	return res, nil
 }

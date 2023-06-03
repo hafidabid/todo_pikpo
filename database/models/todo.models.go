@@ -24,6 +24,10 @@ type TodoDTO struct {
 	db *database.Database
 }
 
+func (td *TodoDTO) SetDb(db *database.Database) {
+	td.db = db
+}
+
 func (td *TodoDTO) GetMany(filter map[string]interface{}, page uint, pageSize uint) ([]TodoModel, error) {
 	var data []TodoModel
 	err := td.db.Postgres.Limit(int(pageSize)).Offset(int(page*pageSize)).Find(&data, filter).Error
