@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"errors"
-	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"time"
 	"todo_pikpo/database"
 	model "todo_pikpo/database/models"
 	"todo_pikpo/dto"
+
+	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type TodoController struct {
@@ -39,11 +40,17 @@ func (tc TodoController) AddTodo(data model.TodoModel) (model.TodoModel, int, er
 		return model.TodoModel{}, code, err
 	}
 
-	data.Id = uuid.New().String()
-	data.IsDone = false
-	data.UpdatedAt = time.Now()
-	data.CreatedAt = time.Now()
-	res, err := tc.dto.Create(data)
+	res, err := tc.dto.Create(model.TodoModel{
+		Id:          uuid.New().String(),
+		Author:      data.Author,
+		Title:       data.Title,
+		Description: data.Description,
+		IsDone:      false,
+		StartDate:   data.StartDate,
+		EndDate:     data.EndDate,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	})
 	if err != nil {
 		log.Error(time.Now(), " AddTodo controller ", err)
 		return model.TodoModel{}, 500, err
