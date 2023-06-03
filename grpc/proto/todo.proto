@@ -14,7 +14,7 @@ service TodoService {
 }
 
 service StreamService{
-  rpc GetStreamingTodo(FilterRequest) returns (stream Response){};
+  rpc GetStreamingTodo(FilterRequest) returns (stream DataResponse){};
 }
 
 message AddRequest {
@@ -63,7 +63,9 @@ message IdQuery {
 }
 
 message ArrResponse{
-  repeated Response result = 1;
+  bool isOk=1;
+  repeated DataResponse value=2;
+  ErrorResponse error=3;
 }
 
 message EditRequest {
