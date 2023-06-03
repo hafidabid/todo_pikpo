@@ -1,7 +1,9 @@
 package config
 
-import "github.com/spf13/viper"
-import log "github.com/sirupsen/logrus"
+import (
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+)
 
 type ConfigApp struct {
 	DbUsername string `mapstructure:"PG_USERNAME"`
@@ -23,7 +25,7 @@ func NewAppConfig(filePath string) (c ConfigApp, e error) {
 	viper.SetConfigType("env")
 	viper.AutomaticEnv()
 	if e := viper.ReadInConfig(); e != nil {
-		log.Errorf("error in creating NewAppConfig with error ", e)
+		log.Error("error in creating NewAppConfig with error ", e)
 	}
 	e = viper.Unmarshal(&confResult)
 	return confResult, e

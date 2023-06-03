@@ -3,3 +3,4 @@
 .env.test
 *.zip
 *.pb.go
+.env.testonly
