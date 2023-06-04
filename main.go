@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	db, err := database.NewDatabase(database.CreateURI(conf))
+	db, err := database.NewDatabase(conf)
 	if err != nil {
 		log.Error("something wrong while loading app database -> ", err)
 		panic(err)

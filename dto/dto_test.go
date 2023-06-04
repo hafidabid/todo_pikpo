@@ -23,16 +23,16 @@ func (s *DtoTestSuite) SetupSuite() {
 		return
 	}
 
-	db, err := database.NewDatabase(database.CreateURI(c))
+	db, err := database.NewDatabase(c)
 	if err != nil {
 		s.T().Error("Failed to create database:", err)
 		return
 	}
-	s.dto.db = &db
+	s.dto.Db = &db
 }
 
 func (s *DtoTestSuite) SetupTest() {
-	s.dto.db.Migrate()
+	s.dto.Db.Migrate()
 }
 
 func (s *DtoTestSuite) TearDownSuite() {
@@ -40,7 +40,7 @@ func (s *DtoTestSuite) TearDownSuite() {
 }
 
 func (s *DtoTestSuite) TearDownTest() {
-	s.dto.db.Flush()
+	s.dto.Db.Flush()
 }
 
 func TestSuite(t *testing.T) {
@@ -61,7 +61,7 @@ func (s *DtoTestSuite) TestAdd() {
 	})
 
 	var res model.TodoModel
-	err := s.dto.db.Postgres.Where("id = ?", "1").First(&res).Error
+	err := s.dto.Db.Postgres.Where("id = ?", "1").First(&res).Error
 
 	a := s.Suite.Assert()
 
@@ -69,7 +69,7 @@ func (s *DtoTestSuite) TestAdd() {
 	a.Equal(res.Id, "1")
 	a.Equal(res.Author, "-")
 
-	err = s.dto.db.Postgres.Where("id = ?", "10").First(&res).Error
+	err = s.dto.Db.Postgres.Where("id = ?", "10").First(&res).Error
 	a.NotEqual(err, nil)
 
 	// Test for duplicate ID
@@ -331,21 +331,21 @@ func (s *DtoTestSuite) TestDelete() {
 	})
 
 	var data []model.TodoModel
-	err := s.dto.db.Postgres.Find(&data).Error
+	err := s.dto.Db.Postgres.Find(&data).Error
 	a.Equal(err, nil)
 	a.Equal(len(data), 2)
 
 	_, err = s.dto.Delete("1")
 	a.Equal(err, nil)
 
-	err = s.dto.db.Postgres.Find(&data).Error
+	err = s.dto.Db.Postgres.Find(&data).Error
 	a.Equal(err, nil)
 	a.Equal(len(data), 1)
 
 	_, err = s.dto.Delete("2")
 	a.Equal(err, nil)
 
-	err = s.dto.db.Postgres.Find(&data).Error
+	err = s.dto.Db.Postgres.Find(&data).Error
 	a.Equal(err, nil)
 	a.Equal(len(data), 0)
 }

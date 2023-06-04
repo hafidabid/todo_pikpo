@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"time"
 	"todo_pikpo/database"
@@ -55,26 +58,66 @@ func (tc TodoController) AddTodo(data model.TodoModel) (model.TodoModel, int, er
 		log.Error(time.Now().Format("2006-01-02 15:04:05"), " AddTodo controller ", err)
 		return model.TodoModel{}, 500, err
 	}
+
+	//Revoke data from redis too
+	_ = tc.dto.Db.RedisRemove("list-")
+
 	return res, 200, nil
 }
 
 func (tc TodoController) GetTodos(filter map[string]interface{}, page uint, limit uint) ([]model.TodoModel, int, error) {
+	// Get data from redis first
+	var data []model.TodoModel
+	jd, e0 := json.Marshal(filter)
+	if e0 == nil {
+		md5hash := md5.Sum(jd)
+		hashed := hex.EncodeToString(md5hash[:])
+		eRedis := tc.dto.Db.GetRedis("list-"+hashed, &data)
+		if eRedis == nil {
+			return data, 200, nil
+		}
+	}
+
+	// Get data from postgres
 	data, err := tc.dto.GetMany(filter, page, limit)
 	if err != nil {
 		log.Error(time.Now().Format("2006-01-02 15:04:05"), " GetTodos controller ", err)
 
 		return []model.TodoModel{}, 500, err
 	}
+
+	// Insert data into redis
+	if e0 == nil {
+		md5hash := md5.Sum(jd)
+		hashed := hex.EncodeToString(md5hash[:])
+		_ = tc.dto.Db.AddRedis("list-"+hashed, data)
+	}
+
 	return data, 200, nil
+
 }
 
 func (tc TodoController) GetTodo(id string) (model.TodoModel, int, error) {
-	data, err := tc.dto.GetSingle(id)
+
+	// Get data from redis first
+	var data model.TodoModel
+	err := tc.dto.Db.GetRedis(id, &data)
+	if err == nil {
+		return data, 200, nil
+	}
+
+	// Get data from postgres
+	data, err = tc.dto.GetSingle(id)
+
 	if err != nil {
 		log.Error(time.Now().Format("2006-01-02 15:04:05"), " GetTodo controller ", err)
 
 		return model.TodoModel{}, 404, err
 	}
+
+	// Insert data into redis
+	_ = tc.dto.Db.AddRedis(id, data)
+
 	return data, 200, nil
 }
 
@@ -101,6 +144,10 @@ func (tc TodoController) EditTodo(id string, data model.TodoModel) (model.TodoMo
 		return model.TodoModel{}, 500, err
 	}
 
+	//Revoke data from redis too
+	_ = tc.dto.Db.RedisRemove(id)
+	_ = tc.dto.Db.RedisRemove("list-")
+
 	return result, 200, nil
 }
 
@@ -117,6 +164,10 @@ func (tc TodoController) DeleteTodo(id string) (model.TodoModel, int, error) {
 
 		return model.TodoModel{}, 500, err
 	}
+
+	//Revoke data from redis too
+	_ = tc.dto.Db.RedisRemove(id)
+	_ = tc.dto.Db.RedisRemove("list-")
 
 	return result, 200, nil
 }

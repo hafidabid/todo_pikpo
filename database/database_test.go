@@ -20,7 +20,7 @@ func (s *DbTestSuite) SetupSuite() {
 		return
 	}
 	s.config = c
-	db, err := NewDatabase(CreateURI(c))
+	db, err := NewDatabase(c)
 	if err != nil {
 		s.T().Error("Failed to create database:", err)
 		return

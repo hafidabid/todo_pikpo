@@ -11,11 +11,11 @@ import (
 
 type TodoDTO struct {
 	_interface.DtoInterface[model.TodoModel]
-	db *database.Database
+	Db *database.Database
 }
 
 func (td *TodoDTO) SetDb(db *database.Database) {
-	td.db = db
+	td.Db = db
 }
 
 func (td *TodoDTO) GetMany(filter map[string]interface{}, page uint, pageSize uint) ([]model.TodoModel, error) {
@@ -23,9 +23,9 @@ func (td *TodoDTO) GetMany(filter map[string]interface{}, page uint, pageSize ui
 
 	var err error
 	if len(filter) >= 1 {
-		err = td.db.Postgres.Limit(int(pageSize)).Offset(int(page*pageSize)).Find(&data, filter).Error
+		err = td.Db.Postgres.Limit(int(pageSize)).Offset(int(page*pageSize)).Find(&data, filter).Error
 	} else {
-		err = td.db.Postgres.Limit(int(pageSize)).Offset(int(page * pageSize)).Find(&data).Error
+		err = td.Db.Postgres.Limit(int(pageSize)).Offset(int(page * pageSize)).Find(&data).Error
 	}
 
 	if err != nil {
@@ -38,7 +38,7 @@ func (td *TodoDTO) GetMany(filter map[string]interface{}, page uint, pageSize ui
 
 func (td *TodoDTO) GetSingle(id string) (model.TodoModel, error) {
 	var data model.TodoModel
-	err := td.db.Postgres.First(&data, "id = ?", id).Error
+	err := td.Db.Postgres.First(&data, "id = ?", id).Error
 	if err != nil {
 		return model.TodoModel{}, err
 	}
@@ -46,7 +46,7 @@ func (td *TodoDTO) GetSingle(id string) (model.TodoModel, error) {
 }
 
 func (td *TodoDTO) Create(data model.TodoModel) (model.TodoModel, error) {
-	err := td.db.Postgres.Create(&data).Error
+	err := td.Db.Postgres.Create(&data).Error
 	if err != nil {
 		return model.TodoModel{}, err
 	}
@@ -55,7 +55,7 @@ func (td *TodoDTO) Create(data model.TodoModel) (model.TodoModel, error) {
 
 func (td *TodoDTO) Update(id string, data model.TodoModel) (model.TodoModel, error) {
 	var ret model.TodoModel
-	err := td.db.Postgres.First(&ret, "id = ?", id).Error
+	err := td.Db.Postgres.First(&ret, "id = ?", id).Error
 	if err != nil {
 		return model.TodoModel{}, err
 	}
@@ -68,14 +68,14 @@ func (td *TodoDTO) Update(id string, data model.TodoModel) (model.TodoModel, err
 	ret.EndDate = data.EndDate
 
 	ret.UpdatedAt = time.Now()
-	err = td.db.Postgres.Save(&ret).Error
+	err = td.Db.Postgres.Save(&ret).Error
 
 	return ret, err
 }
 
 func (td *TodoDTO) Delete(id string) (model.TodoModel, error) {
 	var data model.TodoModel
-	err := td.db.Postgres.Where("id = ?", id).Delete(&data).Error
+	err := td.Db.Postgres.Where("id = ?", id).Delete(&data).Error
 	if err != nil {
 		return model.TodoModel{}, err
 	}

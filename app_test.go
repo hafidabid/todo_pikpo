@@ -62,7 +62,7 @@ func (s *AppTest) SetupSuite() {
 
 	s.conf = c
 
-	db, err := database.NewDatabase(database.CreateURI(c))
+	db, err := database.NewDatabase(c)
 	if err != nil {
 		s.T().Error("Failed to create database:", err)
 		return
