@@ -2,11 +2,12 @@ package grpc
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
 	"time"
 	"todo_pikpo/controllers"
 	model "todo_pikpo/database/models"
 	pb "todo_pikpo/grpc/proto"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type GrpcServer struct {
@@ -60,7 +61,7 @@ func (gs *GrpcServer) todoGetter(filter *pb.FilterRequest) ([]*pb.DataResponse, 
 }
 
 func (gs *GrpcServer) GetTodo(ctx context.Context, filter *pb.FilterRequest) (*pb.ArrResponse, error) {
-	log.Info(time.Now(), " grpc - GetTodo ", filter)
+	log.Info(time.Now().Format("2006-01-02 15:04:05"), " grpc - GetTodo ", filter)
 
 	lData, err := gs.todoGetter(filter)
 	var eResp = pb.ErrorResponse{}
@@ -80,7 +81,7 @@ func (gs *GrpcServer) GetTodo(ctx context.Context, filter *pb.FilterRequest) (*p
 }
 
 func (gs *GrpcServer) GetOneTodo(ctx context.Context, id *pb.IdQuery) (*pb.Response, error) {
-	log.Info(time.Now(), " grpc - GetOneTodo ", id)
+	log.Info(time.Now().Format("2006-01-02 15:04:05"), " grpc - GetOneTodo ", id)
 
 	resp, status, err := gs.controller.GetTodo(id.GetId())
 
@@ -114,7 +115,7 @@ func (gs *GrpcServer) GetStreamingTodo(
 	filter *pb.FilterRequest,
 	stream pb.StreamService_GetStreamingTodoServer,
 ) error {
-	log.Info(time.Now(), " grpc - GetStreamingTodo ", filter)
+	log.Info(time.Now().Format("2006-01-02 15:04:05"), " grpc - GetStreamingTodo ", filter)
 	lData, err := gs.todoGetter(filter)
 	if err != nil {
 		stream.Send(&pb.DataResponse{
@@ -134,7 +135,7 @@ func (gs *GrpcServer) GetStreamingTodo(
 }
 
 func (gs *GrpcServer) AddTodo(ctx context.Context, data *pb.AddRequest) (*pb.Response, error) {
-	log.Info(time.Now(), " grpc - AddTodo ", data)
+	log.Info(time.Now().Format("2006-01-02 15:04:05"), " grpc - AddTodo ", data)
 
 	res, code, err := gs.controller.AddTodo(model.TodoModel{
 		Author:      data.GetAuthor(),
@@ -171,7 +172,7 @@ func (gs *GrpcServer) AddTodo(ctx context.Context, data *pb.AddRequest) (*pb.Res
 }
 
 func (gs *GrpcServer) EditTodo(ctx context.Context, data *pb.EditRequest) (*pb.Response, error) {
-	log.Info(time.Now(), " grpc - EditTodo ", data)
+	log.Info(time.Now().Format("2006-01-02 15:04:05"), " grpc - EditTodo ", data)
 
 	res, code, err := gs.controller.EditTodo(data.GetId().GetId(), model.TodoModel{
 		Author:      data.GetData().GetAuthor(),
@@ -209,7 +210,7 @@ func (gs *GrpcServer) EditTodo(ctx context.Context, data *pb.EditRequest) (*pb.R
 }
 
 func (gs *GrpcServer) DeleteTodo(ctx context.Context, id *pb.IdQuery) (*pb.Response, error) {
-	log.Info(time.Now(), " grpc - DeleteTodo ", id.GetId())
+	log.Info(time.Now().Format("2006-01-02 15:04:05"), " grpc - DeleteTodo ", id.GetId())
 
 	res, code, err := gs.controller.DeleteTodo(id.GetId())
 
@@ -242,6 +243,6 @@ func (gs *GrpcServer) DeleteTodo(ctx context.Context, id *pb.IdQuery) (*pb.Respo
 func StartGrpc(controller *controllers.TodoController) GrpcServer {
 	g := GrpcServer{controller: controller}
 
-	log.Info(time.Now(), " Initialize new GRPC Instance ", g)
+	log.Info(time.Now().Format("2006-01-02 15:04:05"), " Initialize new GRPC Instance ", g)
 	return g
 }

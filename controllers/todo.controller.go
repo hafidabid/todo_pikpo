@@ -35,7 +35,7 @@ func (tc TodoController) verify(data *model.TodoModel) (int, error) {
 
 func (tc TodoController) AddTodo(data model.TodoModel) (model.TodoModel, int, error) {
 	if code, err := tc.verify(&data); err != nil {
-		log.Error(time.Now(), " AddTodo controller ", err)
+		log.Error(time.Now().Format("2006-01-02 15:04:05"), " AddTodo controller ", err)
 
 		return model.TodoModel{}, code, err
 	}
@@ -52,7 +52,7 @@ func (tc TodoController) AddTodo(data model.TodoModel) (model.TodoModel, int, er
 		UpdatedAt:   time.Now(),
 	})
 	if err != nil {
-		log.Error(time.Now(), " AddTodo controller ", err)
+		log.Error(time.Now().Format("2006-01-02 15:04:05"), " AddTodo controller ", err)
 		return model.TodoModel{}, 500, err
 	}
 	return res, 200, nil
@@ -61,7 +61,7 @@ func (tc TodoController) AddTodo(data model.TodoModel) (model.TodoModel, int, er
 func (tc TodoController) GetTodos(filter map[string]interface{}, page uint, limit uint) ([]model.TodoModel, int, error) {
 	data, err := tc.dto.GetMany(filter, page, limit)
 	if err != nil {
-		log.Error(time.Now(), " GetTodos controller ", err)
+		log.Error(time.Now().Format("2006-01-02 15:04:05"), " GetTodos controller ", err)
 
 		return []model.TodoModel{}, 500, err
 	}
@@ -71,7 +71,7 @@ func (tc TodoController) GetTodos(filter map[string]interface{}, page uint, limi
 func (tc TodoController) GetTodo(id string) (model.TodoModel, int, error) {
 	data, err := tc.dto.GetSingle(id)
 	if err != nil {
-		log.Error(time.Now(), " GetTodo controller ", err)
+		log.Error(time.Now().Format("2006-01-02 15:04:05"), " GetTodo controller ", err)
 
 		return model.TodoModel{}, 404, err
 	}
@@ -80,13 +80,13 @@ func (tc TodoController) GetTodo(id string) (model.TodoModel, int, error) {
 
 func (tc TodoController) EditTodo(id string, data model.TodoModel) (model.TodoModel, int, error) {
 	if code, err := tc.verify(&data); err != nil {
-		log.Error(time.Now(), " EditTodo controller ", err)
+		log.Error(time.Now().Format("2006-01-02 15:04:05"), " EditTodo controller ", err)
 
 		return model.TodoModel{}, code, err
 	}
 
 	if _, err := tc.dto.GetSingle(id); err != nil {
-		log.Error(time.Now(), " EditTodo controller ", err)
+		log.Error(time.Now().Format("2006-01-02 15:04:05"), " EditTodo controller ", err)
 
 		return model.TodoModel{}, 404, err
 	}

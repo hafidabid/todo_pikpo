@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"testing"
@@ -15,9 +16,12 @@ import (
 
 	pb "todo_pikpo/grpc/proto"
 
+	midw "todo_pikpo/middleware"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type AppTest struct {
@@ -33,8 +37,11 @@ func (s *AppTest) grpcRunner() (net.Listener, error) {
 	if err != nil {
 		panic(err)
 	}
-
-	sr := grpc.NewServer()
+	mdl := midw.NewMiddleware(s.conf)
+	sr := grpc.NewServer(
+		grpc.UnaryInterceptor(mdl.UnaryAuth),
+		grpc.StreamInterceptor(mdl.StreamAuth),
+	)
 	pb.RegisterTodoServiceServer(sr, &s.grpc)
 	pb.RegisterStreamServiceServer(sr, &s.grpc)
 
@@ -116,7 +123,7 @@ func TestSuite(t *testing.T) {
 
 func (s *AppTest) TestRPC1() {
 	a := s.Suite.Assert()
-
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+s.conf.EncryptKey)
 	s.createDummyData()
 	go func() {
 		l, e := s.grpcRunner()
@@ -134,20 +141,20 @@ func (s *AppTest) TestRPC1() {
 
 	client := pb.NewTodoServiceClient(cc)
 
-	resp, err := client.GetTodo(context.Background(), &pb.FilterRequest{})
+	resp, err := client.GetTodo(ctx, &pb.FilterRequest{})
 	a.Equal(err, nil)
 	a.Equal(resp.GetIsOk(), true)
 	a.Equal(len(resp.GetValue()), 3)
 
 	// Test with pagination
-	resp, err = client.GetTodo(context.Background(), &pb.FilterRequest{
+	resp, err = client.GetTodo(ctx, &pb.FilterRequest{
 		Limit: 2,
 	})
 	a.Equal(err, nil)
 	a.Equal(resp.GetIsOk(), true)
 	a.Equal(len(resp.GetValue()), 2)
 
-	resp, err = client.GetTodo(context.Background(), &pb.FilterRequest{
+	resp, err = client.GetTodo(ctx, &pb.FilterRequest{
 		Limit: 2,
 		Page:  1,
 	})
@@ -156,14 +163,15 @@ func (s *AppTest) TestRPC1() {
 	a.Equal(len(resp.GetValue()), 1)
 
 	// Test with filter
-	resp, err = client.GetTodo(context.Background(), &pb.FilterRequest{
+
+	resp, err = client.GetTodo(ctx, &pb.FilterRequest{
 		Title: "jakarta unit test",
 	})
 	a.Equal(err, nil)
 	a.Equal(resp.GetIsOk(), true)
 	a.Equal(len(resp.GetValue()), 1)
 
-	resp, err = client.GetTodo(context.Background(), &pb.FilterRequest{
+	resp, err = client.GetTodo(ctx, &pb.FilterRequest{
 		Author: "james",
 	})
 	a.Equal(err, nil)
@@ -175,6 +183,7 @@ func (s *AppTest) TestRPC1() {
 func (s *AppTest) TestRPC2() {
 	a := s.Suite.Assert()
 
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+s.conf.EncryptKey)
 	s.createDummyData()
 	go func() {
 		l, e := s.grpcRunner()
@@ -191,16 +200,16 @@ func (s *AppTest) TestRPC2() {
 	defer cc.Close()
 
 	client := pb.NewTodoServiceClient(cc)
-	resp, err := client.GetTodo(context.Background(), &pb.FilterRequest{})
+	resp, err := client.GetTodo(ctx, &pb.FilterRequest{})
 	a.Equal(err, nil)
 	a.Equal(resp.GetIsOk(), true)
 
-	resp2, err := client.GetOneTodo(context.Background(), &pb.IdQuery{Id: "1"})
+	resp2, err := client.GetOneTodo(ctx, &pb.IdQuery{Id: "1"})
 	a.Equal(err, nil)
 	a.Equal(resp2.GetIsOk(), false)
 	a.Equal(int(resp2.GetError().GetCode()), 404)
 
-	resp2, err = client.GetOneTodo(context.Background(), &pb.IdQuery{Id: resp.GetValue()[0].GetId()})
+	resp2, err = client.GetOneTodo(ctx, &pb.IdQuery{Id: resp.GetValue()[0].GetId()})
 	a.Equal(err, nil)
 	a.Equal(resp2.GetIsOk(), true)
 	a.Equal(resp2.GetValue().GetId(), resp.GetValue()[0].GetId())
@@ -210,6 +219,7 @@ func (s *AppTest) TestRPC2() {
 func (s *AppTest) TestRPC3() {
 	a := s.Suite.Assert()
 
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+s.conf.EncryptKey)
 	s.createDummyData()
 	go func() {
 		l, e := s.grpcRunner()
@@ -227,22 +237,22 @@ func (s *AppTest) TestRPC3() {
 
 	client := pb.NewTodoServiceClient(cc)
 
-	data, err := client.GetTodo(context.Background(), &pb.FilterRequest{})
+	data, err := client.GetTodo(ctx, &pb.FilterRequest{})
 	a.Equal(err, nil)
 	a.Equal(data.GetIsOk(), true)
 
-	resp, err := client.DeleteTodo(context.Background(), &pb.IdQuery{
+	resp, err := client.DeleteTodo(ctx, &pb.IdQuery{
 		Id: data.GetValue()[0].GetId(),
 	})
 	a.Equal(err, nil)
 	a.Equal(resp.GetIsOk(), true)
 
-	data, err = client.GetTodo(context.Background(), &pb.FilterRequest{})
+	data, err = client.GetTodo(ctx, &pb.FilterRequest{})
 	a.Equal(err, nil)
 	a.Equal(data.GetIsOk(), true)
 	a.Equal(len(data.GetValue()), 2)
 
-	resp, err = client.DeleteTodo(context.Background(), &pb.IdQuery{
+	resp, err = client.DeleteTodo(ctx, &pb.IdQuery{
 		Id: "fasfad",
 	})
 	a.Equal(resp.GetIsOk(), false)
@@ -252,6 +262,7 @@ func (s *AppTest) TestRPC3() {
 func (s *AppTest) TestRPC4() {
 	a := s.Suite.Assert()
 
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+s.conf.EncryptKey)
 	s.createDummyData()
 	go func() {
 		l, e := s.grpcRunner()
@@ -269,7 +280,7 @@ func (s *AppTest) TestRPC4() {
 
 	client := pb.NewTodoServiceClient(cc)
 
-	resp, err := client.AddTodo(context.Background(), &pb.AddRequest{
+	resp, err := client.AddTodo(ctx, &pb.AddRequest{
 		Title:       "jakarta unit test2",
 		Author:      "james roberto",
 		Description: "just description",
@@ -282,12 +293,12 @@ func (s *AppTest) TestRPC4() {
 	a.Equal(resp.GetValue().GetTitle(), "jakarta unit test2")
 	a.Equal(resp.GetValue().GetAuthor(), "james roberto")
 
-	data, err := client.GetTodo(context.Background(), &pb.FilterRequest{})
+	data, err := client.GetTodo(ctx, &pb.FilterRequest{})
 	a.Equal(err, nil)
 	a.Equal(data.GetIsOk(), true)
 	a.Equal(len(data.GetValue()), 4)
 
-	resp, err = client.AddTodo(context.Background(), &pb.AddRequest{
+	resp, err = client.AddTodo(ctx, &pb.AddRequest{
 		Title:       "jakarta unit test3",
 		Author:      "james roberto",
 		Description: "just description",
@@ -319,13 +330,14 @@ func (s *AppTest) TestRPC5() {
 
 	client := pb.NewTodoServiceClient(cc)
 
-	data, err := client.GetTodo(context.Background(), &pb.FilterRequest{})
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+s.conf.EncryptKey)
+	data, err := client.GetTodo(ctx, &pb.FilterRequest{})
 	a.Equal(err, nil)
 	a.Equal(data.GetIsOk(), true)
 	a.Equal(len(data.GetValue()), 3)
 
 	for _, v := range data.GetValue() {
-		resp, err := client.EditTodo(context.Background(), &pb.EditRequest{
+		resp, err := client.EditTodo(ctx, &pb.EditRequest{
 			Id: &pb.IdQuery{Id: v.GetId()},
 			Data: &pb.AddRequest{
 				Title:       "changed title",
@@ -345,7 +357,7 @@ func (s *AppTest) TestRPC5() {
 	}
 
 	for _, v := range data.GetValue() {
-		resp, err := client.EditTodo(context.Background(), &pb.EditRequest{
+		resp, err := client.EditTodo(ctx, &pb.EditRequest{
 			Id: &pb.IdQuery{Id: v.GetId()},
 			Data: &pb.AddRequest{
 				Title:       "changed title",
@@ -360,4 +372,62 @@ func (s *AppTest) TestRPC5() {
 		a.Equal(resp.GetIsOk(), false)
 		a.Equal(int(resp.GetError().GetCode()), 400)
 	}
+}
+
+func (s *AppTest) TestRPCStream() {
+	a := s.Suite.Assert()
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+s.conf.EncryptKey)
+	s.createDummyData()
+	go func() {
+		l, e := s.grpcRunner()
+		if e != nil {
+			s.Suite.T().Error()
+		}
+		defer l.Close()
+	}()
+
+	cc, err := grpc.Dial(fmt.Sprintf(":%d", s.conf.Port), grpc.WithInsecure())
+	if err != nil {
+		s.T().Error(err)
+	}
+	defer cc.Close()
+
+	client := pb.NewStreamServiceClient(cc)
+	stream, err := client.GetStreamingTodo(ctx, &pb.FilterRequest{})
+	a.Equal(err, nil)
+	var c = 0
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		a.Equal(err, nil)
+		a.Greater(len(msg.GetId()), 1)
+		c += 1
+	}
+	a.Equal(c, 3)
+
+}
+
+func (s *AppTest) TestRPCNonAuth() {
+	a := s.Suite.Assert()
+
+	s.createDummyData()
+	go func() {
+		l, e := s.grpcRunner()
+		if e != nil {
+			s.Suite.T().Error()
+		}
+		defer l.Close()
+	}()
+
+	cc, err := grpc.Dial(fmt.Sprintf(":%d", s.conf.Port), grpc.WithInsecure())
+	if err != nil {
+		s.T().Error(err)
+	}
+	defer cc.Close()
+
+	client := pb.NewTodoServiceClient(cc)
+	_, err = client.GetTodo(context.Background(), &pb.FilterRequest{})
+	a.NotEqual(err, nil)
 }

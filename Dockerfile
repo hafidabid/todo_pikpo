@@ -9,7 +9,7 @@ COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
-RUN sudo apt install -y protobuf-compiler
+RUN apt install -y protobuf-compiler
 RUN protoc --version
 RUN chmod +x generate_proto.sh
 RUN ./generate_proto.sh

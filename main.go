@@ -2,15 +2,18 @@ package main
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"net"
 	"todo_pikpo/config"
 	"todo_pikpo/controllers"
 	"todo_pikpo/database"
 	myGrpc "todo_pikpo/grpc"
+
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
+	pb "todo_pikpo/grpc/proto"
+	midw "todo_pikpo/middleware"
 )
-import pb "todo_pikpo/grpc/proto"
 
 func main() {
 
@@ -44,7 +47,11 @@ func main() {
 		panic(err)
 	}
 
-	s := grpc.NewServer()
+	mdl := midw.NewMiddleware(conf)
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(mdl.UnaryAuth),
+		grpc.StreamInterceptor(mdl.StreamAuth),
+	)
 	pb.RegisterTodoServiceServer(s, &gService)
 	pb.RegisterStreamServiceServer(s, &gService)
 

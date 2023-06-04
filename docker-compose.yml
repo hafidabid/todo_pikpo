@@ -37,3 +37,6 @@ services:
       - REDIS_PORT=6379
     ports:
       - ${PORT}:${PORT}
+    depends_on:
+      - redis
+      - postgres
