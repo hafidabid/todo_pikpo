@@ -1,36 +1,35 @@
-# Start from the official Go image
-FROM golang:1.17 as builder
+FROM golang AS build
 
-# Set the working directory inside the container
-WORKDIR /app
+WORKDIR /go/src/app
 
-# Copy go.mod and go.sum files to download dependencies
-COPY go.mod go.sum ./
+COPY . .
 
-# Download dependencies
+
 RUN go mod download
+
+RUN apt-get update
 RUN apt install -y protobuf-compiler
+RUN apt install -y golang-goprotobuf-dev
+
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+
 RUN protoc --version
+
 RUN chmod +x generate_proto.sh
 RUN ./generate_proto.sh
 
-# Copy the entire project to the container
-COPY . .
+RUN GOOS=linux go build -ldflags="-s -w" -o ./server
 
-# Build the Go application
-RUN go build -o /go-app
+FROM golang
+WORKDIR /usr/bin
+COPY --from=build /go/src/app/server .
+COPY --from=build /go/src/app/.env .
 
-# Start from a clean image
-FROM golang:1.17
+RUN chmod +x server
 
-# Copy the built executable from the previous stage
-COPY --from=builder /go-app /app
+EXPOSE 1000-15000
 
-# Set the working directory inside the container
-WORKDIR /app
+ENTRYPOINT ["./server"]
 
-# Expose the port that the application listens on
-EXPOSE 8080
 
-# Run the Go application
-CMD ["./go-app"]
